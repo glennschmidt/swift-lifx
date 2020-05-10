@@ -3,8 +3,6 @@ import Foundation
 
 /**
  Implements a client for the LIFX LAN protocol, for low-latency communication with LIFX devices on a local network.
- 
- You should interact with the LifxLanClient from a single thread. All callbacks will be executed on the main thread.
  */
 public class LifxLanClient {
     
@@ -16,6 +14,7 @@ public class LifxLanClient {
     public let state = LifxState()
 
     private let socket: LifxLanSocket
+    private let queue: DispatchQueue
     private var socketSubscription: AnyCancellable?
     private var deviceSubscriptions = Dictionary<MacAddr, Set<AnyCancellable>>()
     private let sourceId = arc4random()
@@ -23,9 +22,11 @@ public class LifxLanClient {
     private var remoteUpdateInProgress = false
     private var refreshTimer: Timer?
     
-    public init() throws {
+    ///- Parameter callbackQueue: The serial queue where all callbacks will be executed. Defaults to the main queue.
+    public init(callbackQueue: DispatchQueue = DispatchQueue.main) throws {
         socket = try LifxLanSocket()
-        socketSubscription = socket.messagePublisher.receive(on: DispatchQueue.main).sink(
+        queue = callbackQueue
+        socketSubscription = socket.messagePublisher.receive(on: queue).sink(
             receiveCompletion: { [weak self] result in
                 if case .failure(let error) = result, let _self = self  {
                     _self.stopRefreshing()
@@ -57,17 +58,17 @@ public class LifxLanClient {
     ///
     /// - Parameter device: The device object to add. Once added, this object will benefit from live bidirectional state updates.
     public func add(device: LifxDevice) {
-        DispatchQueue.main.async {
+        queue.async {
             self.didDiscover(device: device)
         }
     }
     
     /// Remove a device from the device list.
     ///
-    /// - Note: If the device still exists on the local network, it may be re-discovered automatically.
+    /// - Note: If the device still exists on the local network, it might be re-discovered automatically.
     /// - Parameter device: The device to remove. If it isn't present in the device list, no action occurs.
     public func remove(device: LifxDevice) {
-        DispatchQueue.main.async {
+        queue.async {
             if let index = self.state.devices.firstIndex(where: { $0.macAddress == device.macAddress }) {
                 let device = self.state.devices[index]
                 self.deviceSubscriptions[device.macAddress]?.forEach { $0.cancel() }
@@ -108,19 +109,23 @@ public class LifxLanClient {
     ///
     /// - Parameter interval: The time between refreshes, in seconds.
     public func startRefreshing(interval: TimeInterval = 3) {
-        refreshTimer?.invalidate()
-        refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true, block: { _ in
+        queue.async {
+            self.refreshTimer?.invalidate()
+            self.refreshTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true, block: { _ in
+                self.refresh()
+                self.discover()
+            })
             self.refresh()
             self.discover()
-        })
-        self.refresh()
-        self.discover()
+        }
     }
     
     /// Disable periodic polling for device status, if it was enabled.
     public func stopRefreshing() {
-        refreshTimer?.invalidate()
-        refreshTimer = nil
+        queue.async {
+            self.refreshTimer?.invalidate()
+            self.refreshTimer = nil
+        }
     }
     
     /// Switch a device on or off.
@@ -135,15 +140,16 @@ public class LifxLanClient {
                 payload: SetPowerPayload(powerOn: on, duration: duration)
             ),
             to: device,
-            completion: completion
+            completion: completionHandler(completion, on: queue)
         )
     }
     
     /// Switch a device on or off.
     ///
     /// - Parameter duration: Fade time in seconds
+    @discardableResult
     public func setPower(_ on: Bool, for device: LifxDevice, duration: TimeInterval = 0) -> AnyPublisher<Void, Error> {
-        return completionPublisher {
+        return completionPublisher(on: queue) {
             self.setPower(on, for: device, duration: duration, completion: $0)
         }
     }
@@ -160,15 +166,16 @@ public class LifxLanClient {
                 payload: SetColorPayload(color: color, duration: duration)
             ),
             to: device,
-            completion: completion
+            completion: completionHandler(completion, on: queue)
         )
     }
     
     /// Set a light's color and brightness level.
     ///
     /// - Parameter duration: Fade time in seconds
+    @discardableResult
     public func setColor(_ color: HSBK, for device: LifxDevice, duration: TimeInterval = 0) -> AnyPublisher<Void, Error> {
-        return completionPublisher {
+        return completionPublisher(on: queue) {
             self.setColor(color, for: device, duration: duration, completion: $0)
         }
     }

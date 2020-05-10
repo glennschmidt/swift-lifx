@@ -1,6 +1,9 @@
 import Combine
 import Foundation
 
+/**
+  Represents an individual LIFX smart light.
+ */
 public class LifxDevice: CustomDebugStringConvertible, Identifiable, ObservableObject {
 
     public let macAddress: MacAddr
@@ -23,7 +26,7 @@ public class LifxDevice: CustomDebugStringConvertible, Identifiable, ObservableO
     
     @Published public var lastContact: Date?
     
-    public init(macAddress: MacAddr, ipAddress: String, port: UInt16) {
+    public init(macAddress: MacAddr, ipAddress: String, port: UInt16 = LifxLanClient.defaultUDPPort) {
         self.macAddress = macAddress
         self.ipAddress = ipAddress
         self.port = port

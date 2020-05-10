@@ -14,6 +14,10 @@ public struct HSBK: Equatable, Hashable {
     ///Color temperature value in degrees Kelvin. Valid range is 2500 (warm) to 9000 (cool). Relevant when saturation is low.
     public var kelvin: UInt16
     
+    ///- Parameter hue: Hue wheel position between 0 and 65535 (which maps to 0° - 360°).
+    ///- Parameter saturation: Saturation level between 0 and 65535.
+    ///- Parameter brightness: Intensity level between 0 and 65535.
+    ///- Parameter kelvin: Color temperature value in degrees Kelvin.
     public init(hue: UInt16=0, saturation: UInt16=0, brightness: UInt16=0, kelvin: UInt16=2500) {
         self.hue = hue
         self.saturation = saturation
@@ -21,10 +25,26 @@ public struct HSBK: Equatable, Hashable {
         self.kelvin = kelvin
     }
     
+    ///- Parameter hueFraction: Hue wheel position between 0 and 1 (which maps to 0° - 360°).
+    ///- Parameter saturationFraction: Saturation level between 0 and 1.
+    ///- Parameter brightnessFraction: Intensity level between 0 and 1.
+    ///- Parameter colorTemperature: Color temperature option.
     public init(hue hueFraction: Float, saturation saturationFraction: Float, brightness brightnessFraction: Float, colorTemperature: ColorTemperature = .neutral) {
         self.init()
         self.hueFraction = hueFraction
         self.saturationFraction = saturationFraction
+        self.brightnessFraction = brightnessFraction
+        self.colorTemperature = colorTemperature
+    }
+    
+    ///Create a 'white' light with a given color temperature.
+    ///
+    ///- Parameter brightnessFraction: Intensity level between 0 and 1.
+    ///- Parameter colorTemperature: Color temperature option.
+    public init(brightness brightnessFraction: Float, colorTemperature: ColorTemperature = .neutral) {
+        self.init()
+        self.hueFraction = 0
+        self.saturationFraction = 0
         self.brightnessFraction = brightnessFraction
         self.colorTemperature = colorTemperature
     }

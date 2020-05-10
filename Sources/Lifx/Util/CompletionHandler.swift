@@ -3,7 +3,7 @@ import Foundation
 
 public typealias CompletionHandler = (Error?)->()
 
-func completionPublisher(_ block: @escaping (@escaping CompletionHandler)->()) -> AnyPublisher<Void, Error> {
+func completionPublisher(on queue: DispatchQueue, block: @escaping (@escaping CompletionHandler)->()) -> AnyPublisher<Void, Error> {
     return Future { promise in
         block() { error in
             if let error = error {
@@ -13,6 +13,17 @@ func completionPublisher(_ block: @escaping (@escaping CompletionHandler)->()) -
             }
         }
     }
-    .receive(on: DispatchQueue.main)
+    .receive(on: queue)
     .eraseToAnyPublisher()
+}
+
+func completionHandler(_ handler: CompletionHandler?, on queue: DispatchQueue) -> CompletionHandler? {
+    guard let handler = handler else {
+        return nil
+    }
+    return { err in
+        queue.async {
+            handler(err)
+        }
+    }
 }
