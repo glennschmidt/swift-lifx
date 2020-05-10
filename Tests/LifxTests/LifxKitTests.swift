@@ -78,7 +78,8 @@ final class LifxKitTests: XCTestCase {
     
     func testProtocolMessage() {
         let sourceId = arc4random()
-        let targetMac = MacAddr(bytes: (1, 2, 3, 4, 5, 6))
+        let targetMac = MacAddr((1, 2, 3, 4, 5, 16))
+        XCTAssertEqual(targetMac, try! MacAddr("01:02:03:04:05:10"))
         let color = HSBK(hue: 21845, saturation: 65535, brightness: 65535, kelvin: 3500)
         var message = ProtocolMessage(
             type: .setColor,

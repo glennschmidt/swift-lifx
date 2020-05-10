@@ -41,7 +41,7 @@ struct ProtocolHeader: BinaryDecodable, BinaryEncodable {
         source = try packet.decode()
         
         let targetBytes = try packet.read(length: 8)
-        target = try MacAddr(data: Data(targetBytes[..<6]))
+        target = try MacAddr(Data(targetBytes[..<6]))
         
         try packet.skip(length: 6)
         bitfield = try packet.read(length: 1)
