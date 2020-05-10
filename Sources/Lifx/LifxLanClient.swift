@@ -73,7 +73,7 @@ public class LifxLanClient {
                 self.deviceSubscriptions[device.macAddress]?.forEach { $0.cancel() }
                 self.deviceSubscriptions.removeValue(forKey: device.macAddress)
                 self.state.devices.remove(at: index)
-                self.delegate?.lifxClient(self, didRemoveDevice: device)
+                self.delegate?.lifxClient(self, didRemove: device)
             }
         }
     }
@@ -220,7 +220,7 @@ public class LifxLanClient {
         }.store(in: &subscriptions)
         deviceSubscriptions[device.macAddress] = subscriptions
         
-        delegate?.lifxClient(self, didAddDevice: device)
+        delegate?.lifxClient(self, didAdd: device)
         refresh(device: device)
     }
     
@@ -252,7 +252,7 @@ public class LifxLanClient {
             return
         }
         device.lastContact = Date()
-        delegate?.lifxClient(self, didContactDevice: device)
+        delegate?.lifxClient(self, didContact: device)
         
         remoteUpdateInProgress = true
         switch message.type {
@@ -260,13 +260,13 @@ public class LifxLanClient {
             if let str = String(bytes: message.payload, encoding: .utf8), device.label != str {
                 print("Device \(device) label is now \(str)")
                 device.label = str
-                delegate?.lifxClient(self, didUpdateDevice: device)
+                delegate?.lifxClient(self, didUpdate: device)
             }
         case .stateLight:
             do {
                 let payload = try StateLightPayload(binaryData: message.payload)
                 if device.updateState(payload) {
-                    delegate?.lifxClient(self, didUpdateDevice: device)
+                    delegate?.lifxClient(self, didUpdate: device)
                 }
             } catch {
                 print("Received invalid stateLight payload: \(error)")
@@ -275,7 +275,7 @@ public class LifxLanClient {
             do {
                 let payload = try StatePowerPayload(binaryData: message.payload)
                 if device.updatePower(payload) {
-                    delegate?.lifxClient(self, didUpdateDevice: device)
+                    delegate?.lifxClient(self, didUpdate: device)
                 }
             } catch {
                 print("Received invalid statePower payload: \(error)")
@@ -284,7 +284,7 @@ public class LifxLanClient {
             do {
                 let payload = try StateVersionPayload(binaryData: message.payload)
                 if device.updateVersion(payload) {
-                    delegate?.lifxClient(self, didUpdateDevice: device)
+                    delegate?.lifxClient(self, didUpdate: device)
                 }
             } catch {
                 print("Received invalid stateVersion payload: \(error)")
@@ -293,7 +293,7 @@ public class LifxLanClient {
             do {
                 let payload = try StateLocationPayload(binaryData: message.payload)
                 if device.updateLocation(payload) {
-                    delegate?.lifxClient(self, didUpdateDevice: device)
+                    delegate?.lifxClient(self, didUpdate: device)
                 }
             } catch {
                 print("Received invalid stateLocation payload: \(error)")
@@ -302,7 +302,7 @@ public class LifxLanClient {
             do {
                 let payload = try StateGroupPayload(binaryData: message.payload)
                 if device.updateGroup(payload) {
-                    delegate?.lifxClient(self, didUpdateDevice: device)
+                    delegate?.lifxClient(self, didUpdate: device)
                 }
             } catch {
                 print("Received invalid stateGroup payload: \(error)")
@@ -311,7 +311,7 @@ public class LifxLanClient {
             do {
                 let payload = try StateWiFiInfoPayload(binaryData: message.payload)
                 if device.updateWiFiInfo(payload) {
-                    delegate?.lifxClient(self, didUpdateDevice: device)
+                    delegate?.lifxClient(self, didUpdate: device)
                 }
             } catch {
                 print("Received invalid stateWiFiInfo payload: \(error)")
@@ -323,26 +323,6 @@ public class LifxLanClient {
         }
         remoteUpdateInProgress = false
     }
-}
-
-//MARK: - Delegate protocol
-
-public protocol LifxLanClientDelegate: AnyObject {
-    /// Called when a new device is added to the device list.
-    func lifxClient(_ client: LifxLanClient, didAddDevice device: LifxDevice)
-    
-    /// Called when a device is removed from the device list.
-    func lifxClient(_ client: LifxLanClient, didRemoveDevice device: LifxDevice)
-    
-    /// Called when one or more device properties have been updated due to new state being received over the network.
-    func lifxClient(_ client: LifxLanClient, didUpdateDevice device: LifxDevice)
-    
-    /// Called whenever a packet is received from a device (proving that it's online).
-    func lifxClient(_ client: LifxLanClient, didContactDevice device: LifxDevice)
-    
-    /// Called if the client has encountered a serious networking problem, such as a port binding failure. The client will not be able to
-    /// communicate with any devices and should be destroyed.
-    func lifxClient(_ client: LifxLanClient, fatalError error: Error)
 }
 
 //MARK: - State payload importing
