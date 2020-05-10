@@ -1,7 +1,7 @@
 import XCTest
 @testable import Lifx
 
-final class LifxKitTests: XCTestCase {
+final class LifxTests: XCTestCase {
     func testByteOrder() {
         let number: UInt16 = 0x0102
         
